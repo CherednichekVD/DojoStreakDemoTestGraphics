@@ -40,30 +40,33 @@ object CheckInValidator {
         }
     }
     
-    // Check if there was a missed schedule (i.e. a schedule passed, but last check-in was before it)
+    // Check if there was a missed schedule (i.e. a schedule passed, but last check-in was not registered for it)
     fun hasMissedSchedule(now: LocalDateTime, lastCheckIn: LocalDateTime, schedules: List<DailySchedule>): Boolean {
-        // This is a simplified check. A full check would iterate over all days between lastCheckIn and now.
-        // For MVP, limit to checking up to 7 days back.
         if (schedules.isEmpty()) return false
         
         val daysBetween = java.time.Duration.between(lastCheckIn, now).toDays()
         if (daysBetween > 7) {
-            // More than a week without checking in, definitely missed at least one schedule (assuming >=1 schedule/week)
-            return schedules.isNotEmpty()
+            return true
         }
 
-        var checkTime = lastCheckIn
-        while (checkTime.isBefore(now)) {
-            val day = checkTime.dayOfWeek
+        var checkDate = lastCheckIn.toLocalDate()
+        val endDate = now.toLocalDate()
+
+        while (!checkDate.isAfter(endDate)) {
+            val day = checkDate.dayOfWeek
             for (schedule in schedules) {
                 if (schedule.dayOfWeek == day) {
-                    val scheduleEndTime = LocalDateTime.of(checkTime.toLocalDate(), schedule.endTime)
-                    if (scheduleEndTime.isAfter(lastCheckIn) && scheduleEndTime.isBefore(now)) {
-                        return true // found a schedule that ended between last check-in and now
+                    val scheduleStartTime = LocalDateTime.of(checkDate, schedule.startTime).minusMinutes(15)
+                    val scheduleEndTime = LocalDateTime.of(checkDate, schedule.endTime).plusMinutes(15)
+                    
+                    if (now.isAfter(scheduleEndTime)) {
+                        if (lastCheckIn.isBefore(scheduleStartTime)) {
+                            return true
+                        }
                     }
                 }
             }
-            checkTime = checkTime.plusDays(1).with(LocalTime.MIN)
+            checkDate = checkDate.plusDays(1)
         }
         return false
     }

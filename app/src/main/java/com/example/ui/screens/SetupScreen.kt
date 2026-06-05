@@ -2,9 +2,9 @@ package com.example.ui.screens
 
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -42,6 +42,7 @@ fun SetupScreen(
             .fillMaxSize()
             .padding(16.dp)
             .systemBarsPadding()
+            .verticalScroll(rememberScrollState())
     ) {
         Text(
             text = "Setup Your Training",
@@ -53,12 +54,10 @@ fun SetupScreen(
         Text("Select Your Dojo", style = MaterialTheme.typography.titleMedium)
         Spacer(modifier = Modifier.height(8.dp))
         
-        LazyColumn(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(200.dp)
+        Column(
+            modifier = Modifier.fillMaxWidth()
         ) {
-            items(gyms) { gym ->
+            gyms.forEach { gym ->
                 Card(
                     modifier = Modifier
                         .fillMaxWidth()
@@ -114,7 +113,7 @@ fun SetupScreen(
             Button(onClick = { classTime = LocalTime.of(19, 30) }, colors = timeButtonColors(classTime == LocalTime.of(19,30))) { Text("19:30") }
         }
 
-        Spacer(modifier = Modifier.weight(1f))
+        Spacer(modifier = Modifier.height(32.dp))
 
         Button(
             onClick = {

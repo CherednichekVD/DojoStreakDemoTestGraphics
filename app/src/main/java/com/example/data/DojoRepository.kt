@@ -12,9 +12,7 @@ class DojoRepository(private val dojoDao: DojoDao) {
     suspend fun checkAndPopulateMockGyms() {
         if (dojoDao.getGymCount() == 0) {
             val mockGyms = listOf(
-                Gym("gym1", "Dragon Martial Arts", 37.4220, -122.0840, 100f),
-                Gym("gym2", "Cobra Kai Dojo", 34.0522, -118.2437, 50f),
-                Gym("gym3", "Miyagi-Do", 34.0620, -118.2500, 50f)
+                Gym("gym1", "Main Dojo (Perm)", 58.049688, 56.217047, 100f)
             )
             dojoDao.insertGyms(mockGyms)
         }
