@@ -17,8 +17,7 @@ data class Gym(
 @Entity(tableName = "user_settings")
 data class UserSettings(
     @PrimaryKey val id: Int = 1,
-    val selectedGymId: String?,
-    // Store schedules as JSON string or a simple delimited string for MVP: "MONDAY,18:00,19:30;WEDNESDAY..."
+    // Store schedules as JSON string or a simple delimited string for MVP: "MONDAY,18:00,19:30,gym_id;..."
     val scheduleCsv: String,
     val currentStreak: Int,
     val lastCheckInMillis: Long
@@ -51,7 +50,7 @@ interface DojoDao {
     suspend fun resetStreak()
 }
 
-@Database(entities = [Gym::class, UserSettings::class], version = 1, exportSchema = false)
+@Database(entities = [Gym::class, UserSettings::class], version = 2, exportSchema = false)
 abstract class AppDatabase : RoomDatabase() {
     abstract fun dojoDao(): DojoDao
 }

@@ -12,19 +12,19 @@ class DojoRepository(private val dojoDao: DojoDao) {
     suspend fun checkAndPopulateMockGyms() {
         if (dojoDao.getGymCount() == 0) {
             val mockGyms = listOf(
-                Gym("gym1", "Main Dojo (Perm)", 58.049688, 56.217047, 100f)
+                Gym("gym1", "Main Dojo (Perm)", 58.049688, 56.217047, 100f),
+                Gym("gym2", "Dynasty", 58.021585, 56.289715, 100f),
+                Gym("gym3", "Academy", 58.015032, 56.238319, 100f)
             )
             dojoDao.insertGyms(mockGyms)
         }
     }
 
-    suspend fun updateSetup(gymId: String, schedules: List<DailySchedule>) {
+    suspend fun updateSetup(schedules: List<DailySchedule>) {
         val current = dojoDao.getUserSettingsSync()
         val newSettings = current?.copy(
-            selectedGymId = gymId,
             scheduleCsv = ScheduleParser.serialize(schedules)
         ) ?: UserSettings(
-            selectedGymId = gymId,
             scheduleCsv = ScheduleParser.serialize(schedules),
             currentStreak = 0,
             lastCheckInMillis = 0L
@@ -55,7 +55,7 @@ object DatabaseProvider {
                 context.applicationContext,
                 AppDatabase::class.java,
                 "dojostreak_database"
-            ).build()
+            ).fallbackToDestructiveMigration().build()
             INSTANCE = instance
             instance
         }

@@ -7,7 +7,8 @@ import java.time.format.DateTimeFormatter
 data class DailySchedule(
     val dayOfWeek: DayOfWeek,
     val startTime: LocalTime,
-    val endTime: LocalTime
+    val endTime: LocalTime,
+    val gymId: String
 )
 
 object ScheduleParser {
@@ -17,12 +18,13 @@ object ScheduleParser {
         if (csv.isBlank()) return emptyList()
         return csv.split(";").mapNotNull {
             val parts = it.split(",")
-            if (parts.size == 3) {
+            if (parts.size == 4) {
                 try {
                     DailySchedule(
                         dayOfWeek = DayOfWeek.valueOf(parts[0]),
                         startTime = LocalTime.parse(parts[1], formatter),
-                        endTime = LocalTime.parse(parts[2], formatter)
+                        endTime = LocalTime.parse(parts[2], formatter),
+                        gymId = parts[3]
                     )
                 } catch (e: Exception) { null }
             } else null
@@ -31,7 +33,7 @@ object ScheduleParser {
 
     fun serialize(schedules: List<DailySchedule>): String {
         return schedules.joinToString(";") {
-            "${it.dayOfWeek.name},${it.startTime.format(formatter)},${it.endTime.format(formatter)}"
+            "${it.dayOfWeek.name},${it.startTime.format(formatter)},${it.endTime.format(formatter)},${it.gymId}"
         }
     }
 }

@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.window.Dialog
 import androidx.core.content.ContextCompat
+import com.example.logic.CheckInValidator
 import com.example.data.UserSettings
 import com.example.ui.viewmodels.MainViewModel
 
@@ -103,6 +104,20 @@ fun HomeScreen(
         finishedListener = { showCelebration = false }
     )
 
+    var nowMillis by remember { mutableLongStateOf(System.currentTimeMillis()) }
+    LaunchedEffect(Unit) {
+        while (true) {
+            kotlinx.coroutines.delay(60000)
+            nowMillis = System.currentTimeMillis()
+        }
+    }
+
+    val isOnCooldown = CheckInValidator.isOnCooldown(nowMillis, userSettings.lastCheckInMillis)
+    val remainingHours = CheckInValidator.getRemainingCooldownHours(nowMillis, userSettings.lastCheckInMillis)
+    val canCheckIn = isTimeValid && isLocationValid && !isOnCooldown
+
+    val nextTrainingSummary by viewModel.nextTrainingSummary.collectAsState()
+
     Column(
         modifier = Modifier
             .fillMaxSize()
@@ -163,8 +178,9 @@ fun HomeScreen(
                     onClick = { 
                         viewModel.performCheckIn() 
                         showCelebration = true
+                        nowMillis = System.currentTimeMillis()
                     },
-                    enabled = isTimeValid && isLocationValid,
+                    enabled = canCheckIn,
                     modifier = Modifier
                         .fillMaxWidth()
                         .height(56.dp),
@@ -173,21 +189,40 @@ fun HomeScreen(
                         disabledContainerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                     )
                 ) {
-                    Text(if (isTimeValid && isLocationValid) "Check-In!" else "Check-In Unavailable", fontSize = 16.sp, fontWeight = FontWeight.Bold)
+                    Text(if (canCheckIn) "Check-In!" else "Check-In Unavailable", fontSize = 16.sp, fontWeight = FontWeight.Bold)
                 }
 
-                if (!isTimeValid || !isLocationValid) {
+                if (isOnCooldown) {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "You have already checked in recently. Next check-in available in ~${remainingHours} hours.",
+                        color = MaterialTheme.colorScheme.error,
+                        style = MaterialTheme.typography.bodySmall,
+                        textAlign = TextAlign.Center
+                    )
+                } else if (!isTimeValid || !isLocationValid) {
                     Spacer(modifier = Modifier.height(8.dp))
                     Text(
                         text = when {
-                            !isTimeValid && !isLocationValid -> "No training scheduled right now, and you are not at the gym."
+                            !isTimeValid && !isLocationValid -> "No training scheduled right now, and you are not at a selected gym."
                             !isTimeValid -> "No training scheduled at this time."
-                            else -> "You are not at the gym."
+                            else -> "You are not at the scheduled gym."
                         },
                         color = MaterialTheme.colorScheme.error,
                         style = MaterialTheme.typography.bodySmall,
                         textAlign = TextAlign.Center
                     )
+
+                    if (nextTrainingSummary != null) {
+                        Spacer(modifier = Modifier.height(16.dp))
+                        Text(
+                            text = nextTrainingSummary!!,
+                            color = MaterialTheme.colorScheme.primary,
+                            style = MaterialTheme.typography.bodyMedium,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center
+                        )
+                    }
                 }
             }
         }

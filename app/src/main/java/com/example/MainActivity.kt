@@ -33,7 +33,7 @@ class MainActivity : ComponentActivity() {
                     val navController = rememberNavController()
 
                     // Simple routing based on settings
-                    val startDestination = if (settings?.selectedGymId != null) "home" else "setup"
+                    val startDestination = if (settings?.scheduleCsv?.isNotBlank() == true) "home" else "setup"
 
                     if (settings != null || gyms.isNotEmpty()) {
                         NavHost(navController = navController, startDestination = startDestination) {

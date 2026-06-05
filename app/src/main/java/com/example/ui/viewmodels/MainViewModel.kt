@@ -33,6 +33,9 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
     private val _isLocationValid = MutableStateFlow(false)
     val isLocationValid: StateFlow<Boolean> = _isLocationValid
 
+    private val _nextTrainingSummary = MutableStateFlow<String?>(null)
+    val nextTrainingSummary: StateFlow<String?> = _nextTrainingSummary
+
     init {
         viewModelScope.launch {
             repository.checkAndPopulateMockGyms()
@@ -59,6 +62,7 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
 
         val now = LocalDateTime.now()
         val schedules = ScheduleParser.parse(settings.scheduleCsv)
+        val gyms = allGyms.value
         
         // Check if missed schedule
         if (settings.lastCheckInMillis > 0) {
@@ -68,25 +72,65 @@ class MainViewModel(application: Application) : AndroidViewModel(application) {
             }
         }
 
-        // Validate current time
-        _isTimeValid.value = CheckInValidator.isTimeValid(now, schedules)
+        // Validate current time & location across all gyms
+        val activeTime = CheckInValidator.isAnyTimeValid(now, schedules)
+        _isTimeValid.value = activeTime
 
-        // Validate location
-        if (loc != null) {
-            val gym = allGyms.value.find { it.id == settings.selectedGymId }
-            if (gym != null) {
-                _isLocationValid.value = CheckInValidator.isLocationValid(loc, gym)
-            } else {
-                _isLocationValid.value = false
-            }
+        if (loc != null && activeTime) {
+            _isLocationValid.value = CheckInValidator.validateCheckIn(now, loc, schedules, gyms)
         } else {
             _isLocationValid.value = false
         }
+        
+        _nextTrainingSummary.value = calculateNextTraining(now, schedules, gyms)
     }
 
-    fun saveSetup(gymId: String, schedules: List<DailySchedule>) {
+    private fun calculateNextTraining(now: LocalDateTime, schedules: List<DailySchedule>, gyms: List<Gym>): String? {
+        if (schedules.isEmpty()) return "No schedules set up."
+        
+        var minDiff = Long.MAX_VALUE
+        var nextGymName = ""
+        var nextTimeStr = ""
+        var nextDayStr = ""
+
+        val currentDayVal = now.dayOfWeek.value
+        val currentTimeInMin = now.toLocalTime().toSecondOfDay() / 60
+
+        for (schedule in schedules) {
+            val dayDiff = (schedule.dayOfWeek.value - currentDayVal + 7) % 7
+            val schedTimeMin = schedule.startTime.toSecondOfDay() / 60
+
+            val totalDiffMin = if (dayDiff == 0 && schedTimeMin > currentTimeInMin) {
+                (schedTimeMin - currentTimeInMin).toLong()
+            } else if (dayDiff > 0) {
+                (dayDiff * 24 * 60 + schedTimeMin - currentTimeInMin).toLong()
+            } else if (dayDiff == 0 && schedTimeMin <= currentTimeInMin) {
+                (7 * 24 * 60 + schedTimeMin - currentTimeInMin).toLong()
+            } else {
+                Long.MAX_VALUE
+            }
+
+            if (totalDiffMin < minDiff) {
+                minDiff = totalDiffMin
+                val gym = gyms.find { it.id == schedule.gymId }
+                nextGymName = gym?.name ?: "Unknown Gym"
+                val formatter = java.time.format.DateTimeFormatter.ofPattern("HH:mm")
+                nextTimeStr = schedule.startTime.format(formatter)
+                nextDayStr = schedule.dayOfWeek.name.take(3)
+            }
+        }
+        
+        if (minDiff == Long.MAX_VALUE) return null
+        return if (minDiff < 24 * 60) {
+           "Next: Today at $nextTimeStr in $nextGymName"
+        } else {
+           "Next: $nextDayStr at $nextTimeStr in $nextGymName"
+        }
+    }
+
+    fun saveSetup(schedules: List<DailySchedule>) {
         viewModelScope.launch {
-            repository.updateSetup(gymId, schedules)
+            repository.updateSetup(schedules)
         }
     }
 
