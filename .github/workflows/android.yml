@@ -2,13 +2,21 @@ name: Android CI
 
 on:
   push:
-    branches: [ "main" ] # или master, смотря какая у тебя ветка главная
+    branches: [ "main" ] # Поменяй на "master", если главная ветка называется так
 
 jobs:
   build:
     runs-on: ubuntu-latest
+    
+    # Если все файлы сборки (gradlew, build.gradle.kts) лежат в подпапке app, 
+    # эта строчка заставит GitHub Actions работать прямо внутри неё:
+    defaults:
+      run:
+        working-directory: ./app
+
     steps:
     - uses: actions/checkout@v4
+    
     - name: set up JDK 17
       uses: actions/setup-java@v4
       with:
@@ -16,8 +24,8 @@ jobs:
         distribution: 'temurin'
         cache: gradle
 
-    - name: Grant execute permission for gradlew
-      run: chmod +x gradlew
+    - name: Grant execute permission for gradlehw
+      run: chmod +x ./gradlew
       
     - name: Build with Gradle
       run: ./gradlew assembleDebug
