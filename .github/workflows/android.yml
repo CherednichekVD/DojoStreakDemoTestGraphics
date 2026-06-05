@@ -18,27 +18,16 @@ jobs:
         distribution: 'temurin'
         cache: gradle
 
-    # Скрипт сам найдет, где лежит gradlew (в корне или в подпапке app), и сделает его исполняемым
-    - name: Grant execute permission for gradlew
+    # Заходим в папку app, даем права и сразу запускаем сборку
+    - name: Build APK with Gradle
       run: |
-        if [ -f "./gradlew" ]; then
-          chmod +x ./gradlew
-        elif [ -f "./app/gradlew" ]; then
-          chmod +x ./app/gradlew
-        fi
-      
-    # Запуск сборки в зависимости от того, где лежит файл
-    - name: Build with Gradle
-      run: |
-        if [ -f "./gradlew" ]; then
-          ./gradlew assembleDebug
-        elif [ -f "./app/gradlew" ]; then
-          cd app && ./gradlew assembleDebug
-        fi
+        cd app
+        chmod +x ./gradlew
+        ./gradlew assembleDebug
 
-    # Поиск готового APK и загрузка его в артефакты
-    - name: Upload APK
+    # Забираем скомпилированный файл из папки app
+    - name: Upload APK Artifact
       uses: actions/upload-artifact@v4
       with:
         name: DojoStreak-APK
-        path: "**/build/outputs/apk/debug/*.apk"
+        path: app/app/build/outputs/apk/debug/app-debug.apk
