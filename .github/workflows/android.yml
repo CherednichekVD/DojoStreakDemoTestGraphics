@@ -18,26 +18,29 @@ jobs:
         distribution: 'temurin'
         cache: gradle
 
-    # Даем права на исполнение градлу везде, где он может быть
-    - name: Grant execute permission for gradlew
+    # Автоматический поиск папки с проектом и сборка
+    - name: Find Gradlew and Build APK
       run: |
-        chmod +x ./gradlew || chmod +x ./app/gradlew || true
-
-    # Запускаем сборку из корня, а если не выходит — пробуем из папки app
-    - name: Build with Gradle
-      run: |
-        if [ -f "./gradlew" ]; then
-          ./gradlew assembleDebug --stacktrace
-        elif [ -f "./app/gradlew" ]; then
-          ./app/gradlew assembleDebug --stacktrace
-        else
-          echo "Gradlew not found!" && exit 1
+        # Ищем, где лежит файл gradlew в репозитории
+        GRADLEW_PATH=$(find . -name "gradlew" -print -quit)
+        
+        if [ -z "$GRADLEW_PATH" ]; then
+          echo "Критическая ошибка: файл gradlew вообще не найден в репозитории!"
+          exit 1
         fi
+        
+        # Получаем чистый путь к папке, где лежит gradlew
+        GRADLE_DIR=$(dirname "$GRADLEW_PATH")
+        echo "Проект найден в папке: $GRADLE_DIR"
+        
+        # Переходим туда, даем права и собираем
+        cd "$GRADLE_DIR"
+        chmod +x ./gradlew
+        ./gradlew assembleDebug --stacktrace
 
-    # Ищем APK по маске в любых подпапках
+    # Универсальный поиск и выгрузка готового APK
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
         name: DojoStreak-APK
         path: "**/build/outputs/apk/debug/*.apk"
-        
