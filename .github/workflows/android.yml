@@ -18,27 +18,28 @@ jobs:
         distribution: 'temurin'
         cache: gradle
 
-    # Автоматический поиск папки с проектом и сборка
-    - name: Find Gradlew and Build APK
+    # Устанавливаем Gradle на сервер вручную, так как в репозитории его нет
+    - name: Install Gradle Setup
       run: |
-        # Ищем, где лежит файл gradlew в репозитории
-        GRADLEW_PATH=$(find . -name "gradlew" -print -quit)
+        sudo apt-get update
+        sudo apt-get install -y gradle
+
+    # Генерируем gradlew прямо внутри папки, где лежит build.gradle.kts
+    - name: Generate Gradle Wrapper and Build
+      run: |
+        # Находим папку, где лежит файл build.gradle.kts (наш проект)
+        PROJECT_DIR=$(dirname $(find . -name "build.gradle.kts" -print -quit))
+        echo "Проект обнаружен в: $PROJECT_DIR"
         
-        if [ -z "$GRADLEW_PATH" ]; then
-          echo "Критическая ошибка: файл gradlew вообще не найден в репозитории!"
-          exit 1
-        fi
+        cd "$PROJECT_DIR"
+        # Генерируем файлы сборщика заново
+        gradle wrapper
         
-        # Получаем чистый путь к папке, где лежит gradlew
-        GRADLE_DIR=$(dirname "$GRADLEW_PATH")
-        echo "Проект найден в папке: $GRADLE_DIR"
-        
-        # Переходим туда, даем права и собираем
-        cd "$GRADLE_DIR"
+        # Даем права и запускаем компиляцию APK
         chmod +x ./gradlew
         ./gradlew assembleDebug --stacktrace
 
-    # Универсальный поиск и выгрузка готового APK
+    # Универсальный поиск готового APK во всех папках проекта
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
