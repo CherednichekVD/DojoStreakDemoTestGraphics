@@ -18,28 +18,27 @@ jobs:
         distribution: 'temurin'
         cache: gradle
 
-    # Устанавливаем Gradle на сервер вручную, так как в репозитории его нет
-    - name: Install Gradle Setup
+    # Генерируем современный Gradle Wrapper (8.7), который понимает Java 17
+    - name: Generate Modern Gradle Wrapper and Build
       run: |
-        sudo apt-get update
-        sudo apt-get install -y gradle
-
-    # Генерируем gradlew прямо внутри папки, где лежит build.gradle.kts
-    - name: Generate Gradle Wrapper and Build
-      run: |
-        # Находим папку, где лежит файл build.gradle.kts (наш проект)
+        # Находим, где лежит build.gradle.kts
         PROJECT_DIR=$(dirname $(find . -name "build.gradle.kts" -print -quit))
         echo "Проект обнаружен в: $PROJECT_DIR"
         
         cd "$PROJECT_DIR"
-        # Генерируем файлы сборщика заново
-        gradle wrapper
         
-        # Даем права и запускаем компиляцию APK
+        # Скачиваем официальный дистрибутив Gradle 8.7 напрямую, минуя старый apt-get
+        wget https://services.gradle.org/distributions/gradle-8.7-bin.zip -O gradle-dist.zip
+        unzip -q gradle-dist.zip
+        
+        # Используем скачанный современный gradle для создания правильного wrapper
+        ./gradle-8.7/bin/gradle wrapper --gradle-version 8.7
+        
+        # Теперь запускаем сборку через созданный локальный gradlew
         chmod +x ./gradlew
         ./gradlew assembleDebug --stacktrace
 
-    # Универсальный поиск готового APK во всех папках проекта
+    # Сохраняем готовый APK
     - name: Upload APK
       uses: actions/upload-artifact@v4
       with:
